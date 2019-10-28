@@ -91,6 +91,8 @@ class OperatorBasis:
         return sparse.tensordot(vector, self.operators, ([-1], [0]))
 
     def matrize_dual(self, dual):
+        if not hasattr(self, 'dual_operators'):
+            self.compute_dual_operators()
         if isinstance(dual, np.ndarray):
             dual = COO.from_numpy(dual)
         return sparse.tensordot(dual.conj(), self.dual_operators, ([-1], [0]))
