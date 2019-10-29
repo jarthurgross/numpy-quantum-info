@@ -59,6 +59,14 @@ class OperatorBasis:
     def vectorize(self, operator):
         """Calculate the components for an operator in this basis.
 
+        `OperatorBasis.vectorize` and `OperatorBasis.matrize_vector` are
+        inverses of one another.
+
+        Parameters
+        ----------
+        operator : array_like
+            The operator to vectorize
+
         """
         if not hasattr(self, 'dual_operators'):
             self.compute_dual_operators()
@@ -75,9 +83,13 @@ class OperatorBasis:
         product between this operator and the other operator, with this
         operator in the antilinear position.
 
+        `OperatorBasis.dualize` and `OperatorBasis.matrize_dual` are
+        inverses of one another.
+
         Parameters
         ----------
         operator : array_like
+            The operator to dualize
 
         """
         if isinstance(operator, np.ndarray):
@@ -86,11 +98,33 @@ class OperatorBasis:
                                 ([-2, -1], [1, 2]))
 
     def matrize_vector(self, vector):
+        """Calculate the matrix representation of a vectorized operator.
+
+        `OperatorBasis.vectorize` and `OperatorBasis.matrize_vector` are
+        inverses of one another.
+
+        Parameters
+        ----------
+        vector : array_like
+            The vectorized operator to express as a matrix.
+
+        """
         if isinstance(vector, np.ndarray):
             vector = COO.from_numpy(vector)
         return sparse.tensordot(vector, self.operators, ([-1], [0]))
 
     def matrize_dual(self, dual):
+        """Calculate the matrix representation of a dualized operator.
+
+        `OperatorBasis.dualize` and `OperatorBasis.matrize_dual` are
+        inverses of one another.
+
+        Parameters
+        ----------
+        dual : array_like
+            The dualized operator to express as a matrix.
+
+        """
         if not hasattr(self, 'dual_operators'):
             self.compute_dual_operators()
         if isinstance(dual, np.ndarray):
