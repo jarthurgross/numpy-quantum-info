@@ -4,6 +4,7 @@
 
 import numpy as np
 import scipy.sparse.linalg as spla
+import scipy.sparse as spsp
 import sparse
 from sparse import COO
 
@@ -32,6 +33,11 @@ class OperatorBasis:
             raise ValueError("Expected 'operators' to be of type 'sparse.COO' "
                              "or 'numpy.ndarray' but got object of type '{}'."
                              .format(type(operators)))
+        self.op_dim = self.operators.shape[0]
+        self.vec_dim = self.operators.shape[1]
+
+    def get_operators(self):
+        return self.operators
 
     def compute_gram_matrix(self):
         """Compute the matrix of Hilbert-Schmidt operator inner products.
@@ -41,6 +47,30 @@ class OperatorBasis:
                                             self.operators.conj(),
                                             ([1, 2], [1, 2])).tocsc()
 
+    def set_gram_matrix(self, gram_matrix):
+        """Set the Gram matrix for this operator basis.
+
+        Parameters
+        ----------
+        gram_matrix : array_like
+            The Gram matrix for this operator basis.
+
+        """
+        if isinstance(gram_matrix, COO):
+            self.gram_matrix = gram_matrix.tocsc()
+        elif isinstance(gram_matrix, np.ndarray):
+            self.gram_matrix = spsp.csc_matrix(gram_matrix)
+        else:
+            self.gram_matrix = gram_matrix
+
+    def get_gram_matrix(self):
+        """Get the Gram matrix for this operator basis.
+
+        """
+        if not hasattr(self, 'gram_matrix'):
+            self.compute_gram_matrix()
+        return self.gram_matrix
+
     def compute_gram_matrix_inv(self):
         """Store the inverse of the Gram matrix for this operator basis.
 
@@ -49,12 +79,56 @@ class OperatorBasis:
             self.compute_gram_matrix()
         self.gram_matrix_inv = spla.inv(self.gram_matrix)
 
+    def set_gram_matrix_inv(self, gram_matrix_inv):
+        """Set the inverse of the Gram matrix for this operator basis.
+
+        Parameters
+        ----------
+        gram_matrix_inv : array_like
+            The inverse of the Gram matrix for this operator basis.
+
+        """
+        if isinstance(gram_matrix_inv, COO):
+            self.gram_matrix_inv = gram_matrix_inv.tocsc()
+        elif isinstance(gram_matrix_inv, np.ndarray):
+            self.gram_matrix_inv = spsp.csc_matrix(gram_matrix_inv)
+        else:
+            self.gram_matrix_inv = gram_matrix_inv
+
+    def get_gram_matrix_inv(self):
+        """Get the inverse of the Gram matrix for this operator basis.
+
+        """
+        if not hasattr(self, 'gram_matrix_inv'):
+            self.compute_gram_matrix_inv()
+        return self.gram_matrix_inv
+
     def compute_dual_operators(self):
+        """Store the dual operator basis.
+
+        Hilbert-Schmidt inner products between the dual operator basis and the
+        operator basis make kronecker deltas.
+
+        """
         if not hasattr(self, 'gram_matrix_inv'):
             self.compute_gram_matrix_inv()
         self.dual_operators = sparse.tensordot(
                 COO.from_scipy_sparse(self.gram_matrix_inv),
                 self.operators, ([1], [0]))
+
+    def set_dual_operators(self, dual_operators):
+        """Set the dual operator basis.
+
+        Parameters
+        ----------
+        dual_operators : array_like
+            The dual operator basis.
+
+        """
+        if isinstance(dual_operators, np.ndarray):
+            self.dual_operators = COO.from_numpy(dual_operators)
+        else:
+            self.dual_operators = dual_operators
 
     def vectorize(self, operator):
         """Calculate the components for an operator in this basis.
@@ -130,3 +204,55 @@ class OperatorBasis:
         if isinstance(dual, np.ndarray):
             dual = COO.from_numpy(dual)
         return sparse.tensordot(dual.conj(), self.dual_operators, ([-1], [0]))
+
+    def compute_sharp_op(self):
+        """Compute the tensor used to take the sharp of a superoperator tensor.
+
+        """
+        # Tensor product of the basis with itself
+        # B_mnpq_jk = X_j_mn*X_k_qp
+        B = sparse.tensordot(self.operators, self.operators.conj(),
+                             0).transpose([1, 2, 5, 4, 0, 3])
+        B_inv = COO.from_scipy_sparse(spla.inv(B.reshape(
+            [self.op_dim**2, self.op_dim**2]).tocsc())).reshape(
+                    2*[self.op_dim] + 4*[self.vec_dim])
+        self.sharp_op = sparse.tensordot(B_inv, B, ([2,3,4,5], [0,3,2,1]))
+
+    def set_sharp_op(self, sharp_op):
+        """Set the tensor used to take the sharp of a superoperator tensor. 
+
+        Parameters
+        ----------
+        sharp_op : array_like
+            The tensor used to take the sharp of a superoperator tensor. 
+
+        """
+        if isinstance(sharp_op, np.ndarray):
+            self.sharp_op = COO.from_numpy(sharp_op)
+        else:
+            self.sharp_op = sharp_op
+
+    def sharp_tensor(self, tensor):
+        """Perform the sharp on the tensor with respect to an operator basis.
+
+        The sharp is an involution that swaps the middle and left-right actions
+        of a tensor.  The is, the left-right action of A is equal to the middle
+        action of A#, and vice versa.
+
+        Parameters
+        ----------
+        tensor : numpy.array
+            The tensor to sharp
+
+        Returns
+        -------
+        array_like
+            The sharp of the supplied tensor with respect to the given operator
+            basis
+
+        """
+        if not hasattr(self, 'sharp_op'):
+            self.compute_sharp_op()
+        if isinstance(tensor, np.ndarray):
+            tensor = COO.from_numpy(tensor)
+        return sparse.tensordot(tensor, self.sharp_op, ([-2, -1], [2, 3]))
