@@ -2,6 +2,7 @@
 
 """
 
+import itertools as it
 import numpy as np
 import scipy.sparse.linalg as spla
 import scipy.sparse as spsp
@@ -256,3 +257,63 @@ class OperatorBasis:
         if isinstance(tensor, np.ndarray):
             tensor = COO.from_numpy(tensor)
         return sparse.tensordot(tensor, self.sharp_op, ([-2, -1], [2, 3]))
+
+def OrthonormalOperatorBasis(OperatorBasis):
+    """An `OperatorBasis` where the operators are guaranteed to be orthonormal.
+
+    """
+    def compute_gram_matrix(self):
+        """Compute the matrix of Hilbert-Schmidt operator inner products.
+
+        """
+        self.gram_matrix = spsp.eye(self.op_dim, format='csc')
+
+    def compute_gram_matrix_inv(self):
+        """Store the inverse of the Gram matrix for this operator basis.
+
+        """
+        self.gram_matrix_inv = spsp.eye(self.op_dim, format='csc')
+
+    def compute_dual_operators(self):
+        """Store the dual operator basis.
+
+        Hilbert-Schmidt inner products between the dual operator basis and the
+        operator basis make kronecker deltas.
+
+        """
+        self.dual_operators = self.operators
+
+def MatrixUnitBasis(OrthonormalOperatorBasis):
+    """An `OperatorBasis` consisting of matrix units.
+
+    Matrix units are matrices where all entries are 0 except for a single 1, and
+    they form an orthonormal nonhermitian operator basis.
+
+    Parameters
+    ----------
+    vec_dim : integer
+        The dimension of the Hilbert space on which the operators act
+
+    """
+    def __init__(self, vec_dim):
+        coords = np.array([[n, j, k] for n, (j, k)
+                           in enumerate(it.product(range(vec_dim), repeat=2))])
+        data = np.ones(vec_dim**2, dtype=np.complex)
+        operators = COO(coords, data)
+        super().__init__(operators)
+
+    def compute_sharp_op(self):
+        """Compute the tensor used to take the sharp of a superoperator tensor.
+
+        For the matrix-unit basis, the `B` operator is orthogonal, so it's
+        inverse is simply a transpose.
+
+        """
+        # Tensor product of the basis with itself
+        # B_mnpq_jk = X_j_mn*X_k_qp
+        B = sparse.tensordot(self.operators, self.operators.conj(),
+                             0).transpose([1, 2, 5, 4, 0, 3])
+        B_inv = B.reshape([self.op_dim**2,
+            self.op_dim**2]).transpose().reshape(2*[self.op_dim] +
+                    4*[self.vec_dim])
+        self.sharp_op = sparse.tensordot(B_inv, B, ([2,3,4,5], [0,3,2,1]))
