@@ -218,9 +218,12 @@ def act_process_tensor(proc_tensor, operator):
     T_jkmn = <m| E(|j><k|) |n>
     For a state rho = rho_jk |j><k| the action of the process is calculated as
     below:
-    E(rho) = T_kjmn rho_jk |m><n|
+    E(rho) = T_jkmn rho_jk |m><n|
     so the new density matric elements are given by this particular contraction
     of T with the original density matrix elements.
+
+    Note that the process tensor is a reshaped version of the process matrix and
+    the left-right-action tensor for the process in the matrix-unit basis.
 
     Parameters
     ----------
@@ -235,7 +238,7 @@ def act_process_tensor(proc_tensor, operator):
         The image of the operator under the process
 
     """
-    return np.einsum('kjmn,kj->mn', proc_tensor, operator)
+    return np.einsum('jkmn,jk->mn', proc_tensor, operator)
 
 def get_process_state_from_tensor(proc_tensor):
     """Get the Choi state of the process from the process tensor.

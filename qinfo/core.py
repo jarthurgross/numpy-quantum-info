@@ -183,6 +183,10 @@ class OperatorBasis:
         vector : array_like
             The vectorized operator to express as a matrix.
 
+        Returns
+        -------
+            The matrix representation of the vectorized operator.
+
         """
         if isinstance(vector, np.ndarray):
             vector = COO.from_numpy(vector)
@@ -198,6 +202,10 @@ class OperatorBasis:
         ----------
         dual : array_like
             The dualized operator to express as a matrix.
+
+        Returns
+        -------
+            The matrix representation of the dualized operator.
 
         """
         if not hasattr(self, 'dual_operators'):
