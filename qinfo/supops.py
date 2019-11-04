@@ -89,7 +89,7 @@ def LR_tensor_to_proc_mat(lr_tensor, op_basis):
     #        = E_jm*(X_m|X_k)*r_k*X_j
     # E_jm*IP_mk = A_jk
     # E_jk = A_jm*IP.inv()_mk
-    return sparse.tensordot(proc_mat, op_basis.get_gram_matrix(),
+    return sparse.tensordot(lr_tensor, op_basis.get_gram_matrix(),
                             ([-1], [0]))
 
 def proc_action(proc_mat, op_vec, op_basis):
@@ -240,7 +240,10 @@ def act_process_tensor(proc_tensor, operator):
     """
     return np.einsum('jkmn,jk->mn', proc_tensor, operator)
 
-def get_process_state_from_tensor(proc_tensor):
+def compose_process_tensors(t2, t1):
+    return np.einsum('pqmn,jkpq->jkmn', t2, t1)
+
+def proc_tensor_to_proc_state(proc_tensor):
     """Get the Choi state of the process from the process tensor.
 
     The Choi state is a partial transpose of the image of half of a maximally
@@ -263,3 +266,79 @@ def get_process_state_from_tensor(proc_tensor):
     return (1/dim_in)*np.transpose(proc_tensor,
                                    (2, 0, 3, 1)).reshape((s[2]*s[0],
                                                           s[3]*s[1]))
+
+def proc_state_to_proc_tensor(proc_state, dim_in=None):
+    """Get the process tensor from the Choi state of the process.
+
+    T_jkmn = d_in * chi_(mk,nj)
+
+    Parameters
+    ----------
+    proc_state : array_like
+        The Choi state
+    dim_in : integer
+        The dimension of the domain (the input Hilbert space). If not specified,
+        will attempt to proceed by assuming the process is a map between Hilbert
+        spaces of identical dimension.
+
+    Returns
+    -------
+        The process tensor
+
+    """
+    if dim_in is None:
+        dim_in = int(np.round(np.sqrt(proc_state.shape[0])))
+        dim_out = dim_in
+    else:
+        dim_out = proc_state.shape[0]//dim_in
+    assert dim_in*dim_out == proc_state.shape[0]
+    return dim_in*np.transpose(proc_state.reshape(dim_out, dim_in,
+                                                  dim_out, dim_in),
+                               (3, 1, 0, 2))
+
+def proc_tensor_to_LR_tensor(proc_tensor):
+    """Calculate the left-right-action tensor from the process tensor.
+
+    The left-right-action tensor calculated is represented in the matrix-unit
+    basis.
+
+    Parameters
+    ----------
+    proc_tensor : array_like
+        The process tensor
+
+    Returns
+    -------
+        The left-right-action tensor
+
+    """
+    vec_dim = proc_tensor.shape[0]
+    return proc_tensor.reshape(2*[vec_dim**2]).T
+
+def kraus_decomp_from_proc_tensor(proc_tensor, mat_unit_basis=None):
+    """Calculate the Kraus operator for a process given a process tensor.
+
+    Parameters
+    ----------
+    proc_tensor : array_like
+        The process tensor (a reshaping of the process matrix or equivalently
+        left-right-action tensor in the matrix-unit basis)
+    mat_unit_basis : MatrixUnitBasis
+        Matrix-unit basis of the appropriate dimension (will be constructed if
+        not provided).
+
+    Returns
+    -------
+        List of operators representing the Kraus operators
+
+    """
+    if mat_unit_basis is None:
+        vec_dim = proc_tensor.shape[0]
+        mat_unit_basis = qi.MatrixUnitBasis(vec_dim)
+    lr_tensor = proc_tensor_to_LR_tensor(proc_tensor)
+    ma_tensor = mat_unit_basis.sharp_tensor(lr_tensor)
+    w, v = np.linalg.eigh(ma_tensor.todense())
+    # We'll assume the process is actually a CPTP map and truncate the
+    # eigenvalues at 0.
+    return [np.sqrt(max(0, w[n]))*mat_unit_basis.matrize_vector(v[:,n])
+            for n in range(w.shape[0])]
