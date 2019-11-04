@@ -8,14 +8,14 @@ from sparse import COO
 
 import qinfo as qi
 
-def proc_mat_to_LR_tensor(proc_mat, op_basis):# IP_jk = (X_j|X_k)
+def proc_mat_to_LR_tensor(proc_mat, op_basis):
     """Turn a process matrix into the corresponding left-right-action tensor.
 
     A process matrix A acts on vectorized operators via matrix-vector
     multiplication:
-    
+
     b_j*X_j -> A_jk*b_k*X_j.
-    
+
     A left-right-action tensor C acts on operators by multiplying the basis
     operator corresponding to the left index by the Hilbert-Schmidt inner
     product of the operator argument with the basis operator corresponding to
@@ -48,7 +48,49 @@ def proc_mat_to_LR_tensor(proc_mat, op_basis):# IP_jk = (X_j|X_k)
     # E_jm*IP_mk = A_jk
     # E_jk = A_jm*IP.inv()_mk
     return sparse.tensordot(proc_mat, op_basis.get_gram_matrix_inv(),
-                            ([-2, -1], [0, 1]))
+                            ([-1], [0]))
+
+def LR_tensor_to_proc_mat(lr_tensor, op_basis):
+    """Turn a left-right-action tensor into the corresponding process matrix.
+
+    A process matrix A acts on vectorized operators via matrix-vector
+    multiplication:
+
+    b_j*X_j -> A_jk*b_k*X_j.
+
+    A left-right-action tensor C acts on operators by multiplying the basis
+    operator corresponding to the left index by the Hilbert-Schmidt inner
+    product of the operator argument with the basis operator corresponding to
+    the right index:
+
+    B -> C_jk*tr(X^dag_k*B)*X_j.
+
+    Parameters
+    ----------
+    lr_tensor : array_like
+        The left-right-action tensor with respect to the given operator basis
+    op_basis : OperatorBasis
+        Basis of operators used to express the process matrix
+
+    Returns
+    -------
+    numpy.array
+        The process matrix whose action is equivalent to the left-right
+        action of the left-right-action tensor in the given basis
+
+    """
+
+    # rho = r_j*X_j
+    # E(rho) = A_jk*r_k*X_j
+    # (X_j|E(X_k)) = A_jk*(X_j|X_j)
+    # A_jk = (X_j|E(X_k))/(X_j|X_j)
+    # E(rho) = E_jk*(X_k|rho)*X_j
+    #        = E_jk*r_m*(X_k|X_m)*X_j
+    #        = E_jm*(X_m|X_k)*r_k*X_j
+    # E_jm*IP_mk = A_jk
+    # E_jk = A_jm*IP.inv()_mk
+    return sparse.tensordot(proc_mat, op_basis.get_gram_matrix(),
+                            ([-1], [0]))
 
 def proc_action(proc_mat, op_vec, op_basis):
     """Get the matrix form of a process matrix times a vectorized operator.
