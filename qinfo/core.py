@@ -266,7 +266,7 @@ class OperatorBasis:
             tensor = COO.from_numpy(tensor)
         return sparse.tensordot(tensor, self.sharp_op, ([-2, -1], [2, 3]))
 
-def OrthonormalOperatorBasis(OperatorBasis):
+class OrthonormalOperatorBasis(OperatorBasis):
     """An `OperatorBasis` where the operators are guaranteed to be orthonormal.
 
     """
@@ -291,7 +291,7 @@ def OrthonormalOperatorBasis(OperatorBasis):
         """
         self.dual_operators = self.operators
 
-def MatrixUnitBasis(OrthonormalOperatorBasis):
+class MatrixUnitBasis(OrthonormalOperatorBasis):
     """An `OperatorBasis` consisting of matrix units.
 
     Matrix units are matrices where all entries are 0 except for a single 1, and
