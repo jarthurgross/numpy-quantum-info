@@ -9,6 +9,8 @@ with open('README.md') as f:
 with open('LICENSE') as f:
     license = f.read()
 
+install_requires = ['numpy']
+
 setup(
     name='qinfo',
     version='0.1.0',
@@ -18,5 +20,6 @@ setup(
     author_email='jarthurgross@gmail.com',
     url='https://github.com/jarthurgross/numpy-quantum-information',
     license=license,
+    install_requires=install_requires,
     packages=find_packages(exclude=('tests', 'docs'))
 )
