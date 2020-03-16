@@ -303,11 +303,13 @@ class MatrixUnitBasis(OrthonormalOperatorBasis):
         The dimension of the Hilbert space on which the operators act
 
     """
-    def __init__(self, vec_dim):
+    def __init__(self, vec_dim_in, vec_dim_out=None):
+        if vec_dim_out is None:
+            vec_dim_out = vec_dim_in
         coords = np.array([[n, j, k] for n, (j, k)
-                           in enumerate(it.product(range(vec_dim),
-                                                   repeat=2))]).T
-        data = np.ones(vec_dim**2, dtype=np.complex)
+                           in enumerate(it.product(range(vec_dim_out),
+                                                   range(vec_dim_in)))]).T
+        data = np.ones(vec_dim_in*vec_dim_out, dtype=np.complex)
         operators = COO(coords, data)
         super().__init__(operators)
 

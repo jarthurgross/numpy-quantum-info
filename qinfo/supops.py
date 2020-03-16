@@ -182,20 +182,22 @@ def left_right_action(lr_tensor, operator, op_basis):
                                              ([-2, -1], [1, 2])),
                             ([-3], [-1]))
 
-def get_process_tensor_from_process(process, dim):
+def get_process_tensor_from_process(process, dim_in):
     """Calculate the process tensor given a process.
 
     The process tensor for a process E in a vector basis {|n>} has the following
     components:
     T_jkmn = <m| E(|j><k|) |n>
 
+    The input and output Hilbert spaces may have different dimensions.
+
     Parameters
     ----------
     process : callable
         The process as a function that takes a density matrix and returns the
         resulting density matrix.
-    dim : int
-        Dimension of the Hilbert space on which the density operators act
+    dim_in : positive integer
+        Dimension of the Hilbert space on which the input density operators act
 
     Returns
     -------
@@ -203,12 +205,12 @@ def get_process_tensor_from_process(process, dim):
         The process tensor
 
     """
-    kets = [np.array([1 if j==k else 0 for k in range(dim)])
-            for j in range(dim)]
+    kets = [np.array([1 if j==k else 0 for k in range(dim_in)])
+            for j in range(dim_in)]
     rho0_jks = [[np.outer(ket1, ket2.conj()) for ket2 in kets]
                 for ket1 in kets]
-    rho_jks = [[process(rho0) for rho0 in rho0_ks] for rho0_ks in rho0_jks]
-    return np.array(rho_jks)
+    rho_mns = [[process(rho0) for rho0 in rho0_ks] for rho0_ks in rho0_jks]
+    return np.array(rho_mns)
 
 def act_process_tensor(proc_tensor, operator):
     """Calculate the action of a process tensor on a state.
@@ -315,6 +317,50 @@ def proc_tensor_to_LR_tensor(proc_tensor):
     vec_dim = proc_tensor.shape[0]
     return proc_tensor.reshape(2*[vec_dim**2]).T
 
+def proc_tensor_to_mat_unit_proc_mat(proc_tensor):
+    """Permute and combine indices to make process matrix from process tensor.
+
+    The process matrix is expressed in the matrix-unit basis consistent with the
+    Hilbert-space basis in which the process tensor is defined.
+
+    Parameters
+    ----------
+    proc_tensor : array_like
+        The process tensor
+
+    Returns
+    -------
+        The corresponding process matrix in the matrix-unit basis
+
+    """
+    dim_in = proc_tensor.shape[0]
+    dim_out = proc_tensor.shape[2]
+    # A_(mj)(nk) = T_jkmn
+    return np.transpose(proc_tensor, (2, 0, 3, 1)).reshape(2*[dim_out*dim_in])
+
+def mat_unit_proc_mat_to_proc_tensor(proc_mat, dim_in, dim_out):
+    """Split and permute indices to make process tensor from process matrix.
+
+    The process matrix is expressed in the matrix-unit basis consistent with the
+    Hilbert-space basis in which the process tensor is defined.
+
+    Parameters
+    ----------
+    proc_mat : array_like
+        The process matrix in the matrix-unit basis
+    dim_in : positive integer
+        The dimension of the input Hilbert space
+    dim_out : positive integer
+        The dimension of the output Hilbert space
+
+    Returns
+    -------
+        The corresponding process tensor
+
+    """
+    # T_jkmn = A_(mj)(nk)
+    return np.transpose(proc_mat.reshape(2*[dim_out, dim_in]), (1, 3, 0, 2))
+
 def kraus_decomp_from_proc_tensor(proc_tensor, mat_unit_basis=None):
     """Calculate the Kraus operator for a process given a process tensor.
 
@@ -333,11 +379,11 @@ def kraus_decomp_from_proc_tensor(proc_tensor, mat_unit_basis=None):
 
     """
     if mat_unit_basis is None:
-        vec_dim = proc_tensor.shape[0]
-        mat_unit_basis = qi.MatrixUnitBasis(vec_dim)
-    lr_tensor = proc_tensor_to_LR_tensor(proc_tensor)
-    ma_tensor = mat_unit_basis.sharp_tensor(lr_tensor)
-    w, v = np.linalg.eigh(ma_tensor.todense())
+        dim_in = proc_tensor.shape[0]
+        dim_out = proc_tensor.shape[2]
+        mat_unit_basis = qi.MatrixUnitBasis(dim_in, dim_out)
+    proc_mat = proc_tensor_to_mat_unit_proc_mat(proc_tensor)
+    w, v = np.linalg.eigh(proc_mat)
     # We'll assume the process is actually a CPTP map and truncate the
     # eigenvalues at 0.
     return [np.sqrt(max(0, w[n]))*mat_unit_basis.matrize_vector(v[:,n])
