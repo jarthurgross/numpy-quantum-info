@@ -266,7 +266,7 @@ def proc_tensor_to_proc_state(proc_tensor):
     s = proc_tensor.shape
     dim_in = s[0]
     return (1/dim_in)*np.transpose(proc_tensor,
-                                   (2, 0, 3, 1)).reshape((s[2]*s[0],
+                                   (2, 1, 3, 0)).reshape((s[2]*s[0],
                                                           s[3]*s[1]))
 
 def proc_state_to_proc_tensor(proc_state, dim_in=None):
