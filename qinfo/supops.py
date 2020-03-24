@@ -2,6 +2,8 @@
 
 """
 
+from functools import reduce
+
 import numpy as np
 import sparse
 from sparse import COO
@@ -133,6 +135,10 @@ def act_proc_tensor(operator, proc_tensor):
     """
     return np.einsum('jkmn,jk->mn', proc_tensor, operator)
 
+###############################################################################
+# Miscellaneous routines
+###############################################################################
+
 def proc_tensor_compose(t2, t1):
     '''Combine tensors to yield the tensor for the composed processes.
 
@@ -151,6 +157,49 @@ def proc_tensor_compose(t2, t1):
 
     '''
     return np.einsum('pqmn,jkpq->jkmn', t2, t1)
+
+def compose_proc_tensors(proc_tensors):
+    '''Compose many process tensors together.
+
+    Processes follow processes that are further right in the list.
+
+    '''
+    return reduce(proc_tensor_compose, proc_tensors)
+
+
+def kraus_eig(proc_tensor, mat_unit_basis=None):
+    '''Perform an eigendecomposition of a process into Kraus operators.
+
+    Uses the canonical Kraus decomposition where the Kraus operators are
+    orthogonal to one another in Hilbert-Schmidt inner product. This routine
+    returns a set of orthonormal operators {V_j} and corresponding eigenvalues
+    {w_j} such that the Kraus operators are
+
+    K_j = sqrt(w_j) V_j
+
+    Parameters
+    ----------
+    proc_tensor : array_like
+        The process tensor (a reshaping of the process matrix or equivalently
+        left-right-action tensor in the matrix-unit basis)
+    mat_unit_basis : MatrixUnitBasis
+        Matrix-unit basis of the appropriate dimension (will be constructed if
+        not provided).
+
+    Returns
+    -------
+        Pair (w, V), where w is the array of eigenvalues and V is the list of
+        orthonormal eigenoperators.
+
+    '''
+    if mat_unit_basis is None:
+        dim_in = proc_tensor.shape[0]
+        dim_out = proc_tensor.shape[2]
+        mat_unit_basis = qi.MatrixUnitBasis(dim_in, dim_out)
+    proc_mat = proc_tensor_to_mat_unit_proc_mat(proc_tensor)
+    w, v = np.linalg.eigh(proc_mat)
+    V = [mat_unit_basis.matrize_vector(v[:,n]) for n in range(w.shape[0])]
+    return w, V
 
 ###############################################################################
 # Conversion routines
@@ -350,16 +399,10 @@ def proc_tensor_to_kraus_decomp(proc_tensor, mat_unit_basis=None):
         List of operators representing the Kraus operators
 
     """
-    if mat_unit_basis is None:
-        dim_in = proc_tensor.shape[0]
-        dim_out = proc_tensor.shape[2]
-        mat_unit_basis = qi.MatrixUnitBasis(dim_in, dim_out)
-    proc_mat = proc_tensor_to_mat_unit_proc_mat(proc_tensor)
-    w, v = np.linalg.eigh(proc_mat)
+    w, V = kraus_eig(proc_tensor, mat_unit_basis)
     # We'll assume the process is actually a CPTP map and truncate the
     # eigenvalues at 0.
-    return [np.sqrt(max(0, w[n]))*mat_unit_basis.matrize_vector(v[:,n])
-            for n in range(w.shape[0])]
+    return [np.sqrt(max(0, w[n])) * V[n] for n in range(w.shape[0])]
 
 def kraus_decomp_to_proc_tensor(kraus_decomp):
     raise NotImplementedError()
