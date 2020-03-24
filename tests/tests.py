@@ -11,9 +11,13 @@ def test_proc_tensor_state():
     RS = np.random.RandomState()
     RS.seed(2003231954)
     rand_tensor = RS.standard_normal((2, 2, 3, 3)) + 1.j*RS.standard_normal((2, 2, 3, 3))
-    check_mat_eq(rand_tensor, supops.proc_state_to_proc_tensor(supops.proc_tensor_to_proc_state(rand_tensor), dim_in=2))
-    rand_state = RS.standard_normal((6, 6)) + 1.j*RS.standard_normal((6, 6))
-    check_mat_eq(rand_state, supops.proc_tensor_to_proc_state(supops.proc_state_to_proc_tensor(rand_state, dim_in=2)))
+    check_mat_eq(rand_tensor,
+                 supops.choi_mat_to_proc_tensor(supops.proc_tensor_to_choi_mat(rand_tensor),
+                                                dim_in=2))
+    rand_mat = RS.standard_normal((6, 6)) + 1.j*RS.standard_normal((6, 6))
+    check_mat_eq(rand_mat,
+                 supops.proc_tensor_to_choi_mat(supops.choi_mat_to_proc_tensor(rand_mat,
+                                                                               dim_in=2)))
 
 def test_kraus():
     Id = np.eye(2, dtype=np.complex)
@@ -79,10 +83,10 @@ def test_kraus():
                  supops.act_process_tensor(proc_tensor_2_to_3,
                                            random_qubit_op))
 
-    dephase_Ks = supops.kraus_decomp_from_proc_tensor(dephase_proc_tensor)
-    depol_Ks = supops.kraus_decomp_from_proc_tensor(depol_proc_tensor)
-    qutrit_Ks = supops.kraus_decomp_from_proc_tensor(qutrit_proc_tensor)
-    Ks_2_to_3_orthog = supops.kraus_decomp_from_proc_tensor(proc_tensor_2_to_3)
+    dephase_Ks = supops.proc_tensor_to_kraus_decomp(dephase_proc_tensor)
+    depol_Ks = supops.proc_tensor_to_kraus_decomp(depol_proc_tensor)
+    qutrit_Ks = supops.proc_tensor_to_kraus_decomp(qutrit_proc_tensor)
+    Ks_2_to_3_orthog = supops.proc_tensor_to_kraus_decomp(proc_tensor_2_to_3)
 
     check_mat_eq(dephase_process(random_qubit_op),
                  act_kraus_ops(random_qubit_op, dephase_Ks))

@@ -245,59 +245,6 @@ def act_process_tensor(proc_tensor, operator):
 def compose_process_tensors(t2, t1):
     return np.einsum('pqmn,jkpq->jkmn', t2, t1)
 
-def proc_tensor_to_proc_state(proc_tensor):
-    """Get the Choi state of the process from the process tensor.
-
-    The Choi state is a partial transpose of the image of half of a maximally
-    entangled state under the process. This is easily obtained from the process
-    tensor: chi_(mk,nj) = (1 / d_in) T_jkmn
-
-    Parameters
-    ----------
-    proc_tensor : np.array
-        The process tensor
-
-    Returns
-    -------
-    numpy.array
-        The Choi state
-
-    """
-    s = proc_tensor.shape
-    dim_in = s[0]
-    return (1/dim_in)*np.transpose(proc_tensor,
-                                   (2, 1, 3, 0)).reshape((s[2]*s[0],
-                                                          s[3]*s[1]))
-
-def proc_state_to_proc_tensor(proc_state, dim_in=None):
-    """Get the process tensor from the Choi state of the process.
-
-    T_jkmn = d_in * chi_(mk,nj)
-
-    Parameters
-    ----------
-    proc_state : array_like
-        The Choi state
-    dim_in : integer
-        The dimension of the domain (the input Hilbert space). If not specified,
-        will attempt to proceed by assuming the process is a map between Hilbert
-        spaces of identical dimension.
-
-    Returns
-    -------
-        The process tensor
-
-    """
-    if dim_in is None:
-        dim_in = int(np.round(np.sqrt(proc_state.shape[0])))
-        dim_out = dim_in
-    else:
-        dim_out = proc_state.shape[0]//dim_in
-    assert dim_in*dim_out == proc_state.shape[0]
-    return dim_in*np.transpose(proc_state.reshape(dim_out, dim_in,
-                                                  dim_out, dim_in),
-                               (3, 1, 0, 2))
-
 def proc_tensor_to_LR_tensor(proc_tensor):
     """Calculate the left-right-action tensor from the process tensor.
 
@@ -361,7 +308,7 @@ def mat_unit_proc_mat_to_proc_tensor(proc_mat, dim_in, dim_out):
     # T_jkmn = A_(mj)(nk)
     return np.transpose(proc_mat.reshape(2*[dim_out, dim_in]), (1, 3, 0, 2))
 
-def kraus_decomp_from_proc_tensor(proc_tensor, mat_unit_basis=None):
+def proc_tensor_to_kraus_decomp(proc_tensor, mat_unit_basis=None):
     """Calculate the Kraus operator for a process given a process tensor.
 
     Parameters
@@ -388,3 +335,73 @@ def kraus_decomp_from_proc_tensor(proc_tensor, mat_unit_basis=None):
     # eigenvalues at 0.
     return [np.sqrt(max(0, w[n]))*mat_unit_basis.matrize_vector(v[:,n])
             for n in range(w.shape[0])]
+
+def proc_tensor_to_choi_mat(proc_tensor):
+    """Get the Choi matrix of the process from the process tensor.
+
+    The Choi matrix is the image of half of an unnormalized maximally
+    entangled state under the process:
+
+    C_Phi = sum_jk E_jk o Phi(E_jk)
+
+    where E_jk = |j><k|.
+
+    See https://en.wikipedia.org/wiki/Choi%27s_theorem_on_completely_positive_maps
+
+    This is easily obtained from the process tensor:
+
+    C_Phi(jm)(kn) = T_jkmn
+
+    Parameters
+    ----------
+    proc_tensor : np.array
+        The process tensor
+
+    Returns
+    -------
+    numpy.array
+        The Choi matrix
+
+    """
+    s = proc_tensor.shape
+    return np.transpose(proc_tensor, (0, 2, 1, 3)).reshape(s[0]*s[2], s[1]*s[3])
+
+def choi_mat_to_proc_tensor(choi_mat, dim_in=None):
+    """Get the process tensor from the Choi matrix of the process.
+
+    The Choi matrix is the image of half of an unnormalized maximally
+    entangled state under the process:
+
+    C_Phi = sum_jk E_jk o Phi(E_jk)
+
+    where E_jk = |j><k|.
+
+    See https://en.wikipedia.org/wiki/Choi%27s_theorem_on_completely_positive_maps
+
+    The process tensor is easily obtained from this matrix:
+
+    T_jkmn = C_Phi(jm)(kn)
+
+    Parameters
+    ----------
+    choi_mat : np.array
+        The Choi matrix
+    dim_in : positive integer
+        The dimension of the input Hilbert space. If `None`, is assumed to be
+        the same as the dimension of the output Hilbert space and then inferred
+        from the dimensions of the Choi matrix.
+
+    Returns
+    -------
+    numpy.array
+        The Choi matrix
+
+    """
+    s = choi_mat.shape
+    if dim_in is None:
+        dim_in = int(np.round(np.sqrt(s[0])))
+        dim_out = dim_in
+    else:
+        dim_out = s[0]//dim_in
+    assert dim_in*dim_out == s[0]
+    return np.transpose(choi_mat.reshape(dim_in, dim_out, dim_in, dim_out), (0, 2, 1, 3))
