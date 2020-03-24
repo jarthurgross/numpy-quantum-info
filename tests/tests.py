@@ -61,27 +61,24 @@ def test_kraus():
     random_qutrit_op = (RS.standard_normal((3, 3))
                         + 1j*RS.standard_normal((3, 3)))
 
-    dephase_proc_tensor = supops.get_process_tensor_from_process(
+    dephase_proc_tensor = supops.process_to_proc_tensor(
             dephase_process, 2)
-    depol_proc_tensor = supops.get_process_tensor_from_process(
+    depol_proc_tensor = supops.process_to_proc_tensor(
             depol_process, 2)
-    qutrit_proc_tensor = supops.get_process_tensor_from_process(
+    qutrit_proc_tensor = supops.process_to_proc_tensor(
             random_qutrit_process, 3)
-    proc_tensor_2_to_3 = supops.get_process_tensor_from_process(
+    proc_tensor_2_to_3 = supops.process_to_proc_tensor(
             process_2_to_3, 2)
 
     check_mat_eq(dephase_process(random_qubit_op),
-                 supops.act_process_tensor(dephase_proc_tensor,
-                                           random_qubit_op))
+                 supops.act_proc_tensor(random_qubit_op, dephase_proc_tensor))
+
     check_mat_eq(depol_process(random_qubit_op),
-                 supops.act_process_tensor(depol_proc_tensor,
-                                           random_qubit_op))
+                 supops.act_proc_tensor(random_qubit_op, depol_proc_tensor))
     check_mat_eq(random_qutrit_process(random_qutrit_op),
-                 supops.act_process_tensor(qutrit_proc_tensor,
-                                           random_qutrit_op))
+                 supops.act_proc_tensor(random_qutrit_op, qutrit_proc_tensor))
     check_mat_eq(process_2_to_3(random_qubit_op),
-                 supops.act_process_tensor(proc_tensor_2_to_3,
-                                           random_qubit_op))
+                 supops.act_proc_tensor(random_qubit_op, proc_tensor_2_to_3))
 
     dephase_Ks = supops.proc_tensor_to_kraus_decomp(dephase_proc_tensor)
     depol_Ks = supops.proc_tensor_to_kraus_decomp(depol_proc_tensor)
