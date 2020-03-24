@@ -7,6 +7,14 @@ import numpy as np
 def check_mat_eq(A, B):
     assert_almost_equal(np.linalg.norm(A - B), 0, 7)
 
+def test_proc_tensor_state():
+    RS = np.random.RandomState()
+    RS.seed(2003231954)
+    rand_tensor = RS.standard_normal((2, 2, 3, 3)) + 1.j*RS.standard_normal((2, 2, 3, 3))
+    check_mat_eq(rand_tensor, supops.proc_state_to_proc_tensor(supops.proc_tensor_to_proc_state(rand_tensor), dim_in=2))
+    rand_state = RS.standard_normal((6, 6)) + 1.j*RS.standard_normal((6, 6))
+    check_mat_eq(rand_state, supops.proc_tensor_to_proc_state(supops.proc_state_to_proc_tensor(rand_state, dim_in=2)))
+
 def test_kraus():
     Id = np.eye(2, dtype=np.complex)
     sigx = np.array([[0, 1], [1, 0]], dtype=np.complex)
