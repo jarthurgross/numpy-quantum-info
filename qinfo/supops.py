@@ -166,6 +166,44 @@ def compose_proc_tensors(proc_tensors):
     '''
     return reduce(proc_tensor_compose, proc_tensors)
 
+def get_identity_proc_tensor(dim):
+    '''Create the process tensor for the identity process.
+
+    Parameters
+    ----------
+    dim : positive integer
+        The dimension of the Hilbert space (that is, the dimension of the space
+        on which operators act, these operators being the inputs to the identity
+        process being constructed)
+
+    Returns
+    -------
+    array_like
+        The process tensor for the identity process
+
+    '''
+    return np.transpose(np.tensordot(np.eye(dim), np.eye(dim), axes=0),
+                        (0, 2, 1, 3))
+
+def tensor_proc_tensors(proc_tensor_a, proc_tensor_b):
+    '''Create the process tensor for the tensor product of two processes
+
+    Parameters
+    ----------
+    proc_tensor_a : array_like
+        The process tensor for the process in the left position of the tensor
+        product
+    proc_tensor_b : array_like
+        The process tensor for the process in the right position of the tensor
+        product
+
+    Returns
+    -------
+    array_like
+        The process tensor for the tensor product of the two processes
+
+    '''
+    return np.kron(proc_tensor_a, proc_tensor_b)
 
 def kraus_eig(proc_tensor, mat_unit_basis=None):
     '''Perform an eigendecomposition of a process into Kraus operators.
