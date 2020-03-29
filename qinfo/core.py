@@ -9,6 +9,18 @@ import scipy.sparse as spsp
 import sparse
 from sparse import COO
 
+def dag(op):
+    return np.conjugate(op.T)
+
+def outer_prod(ketL, ketR):
+    return np.outer(ketL, np.conjugate(ketR))
+
+def inner_prod(ketL, ketR):
+    return np.dot(np.conjugate(ketL), ketR)
+
+def rho_from_ket(ket):
+    return outer_prod(ket, ket)
+
 class OperatorBasis:
     """Object storing the matrices in an operator basis and additional details.
 
