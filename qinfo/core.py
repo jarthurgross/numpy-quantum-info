@@ -12,6 +12,9 @@ from sparse import COO
 def dag(op):
     return np.conjugate(op.T)
 
+def comm(A, B):
+    return A @ B - B @ A
+
 def outer_prod(ketL, ketR):
     return np.outer(ketL, np.conjugate(ketR))
 
