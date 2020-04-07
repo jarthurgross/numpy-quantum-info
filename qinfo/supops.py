@@ -135,6 +135,13 @@ def act_proc_tensor(operator, proc_tensor):
     """
     return np.einsum('jkmn,jk->mn', proc_tensor, operator)
 
+def act_kraus_ops(operator, kraus_ops):
+    '''Act a set of Kraus operators upon an operator.
+
+    '''
+    return sum([kraus_op @ operator @ qi.dag(kraus_op)
+                for kraus_op in kraus_ops])
+
 ###############################################################################
 # Miscellaneous routines
 ###############################################################################
@@ -204,6 +211,23 @@ def tensor_proc_tensors(proc_tensor_a, proc_tensor_b):
 
     '''
     return np.kron(proc_tensor_a, proc_tensor_b)
+
+def get_proc_tensor_fidelity(tensor1, tensor2):
+    '''Compute the entanglement fidelity between two processes (one isometric).
+
+    For processes E and V, this calculates:
+
+    F = (1/d^2) tr( [sum_{j,k} |j><k| o E(|j><k|)] [sum_{m,n} |m><n| o V(|m><n|)] )
+
+    For process tensors T1 and T2, this reduces to:
+
+    F = (1/d^2) T1_jkmn T2_kjnm
+
+    Need to give more thought as to what this means when neither are isometric.
+
+    '''
+    dim = tensor1.shape[0]
+    return np.tensordot(tensor1, tensor2, ([0, 1, 2, 3], [1, 0, 3, 2]))/dim**2
 
 def kraus_eig(proc_tensor, mat_unit_basis=None):
     '''Perform an eigendecomposition of a process into Kraus operators.
