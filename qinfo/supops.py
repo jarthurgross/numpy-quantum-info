@@ -2,7 +2,7 @@
 
 """
 
-from functools import reduce
+from functools import reduce, partial
 
 import numpy as np
 import sparse
@@ -467,7 +467,12 @@ def proc_tensor_to_kraus_decomp(proc_tensor, mat_unit_basis=None):
     return [np.sqrt(max(0, w[n])) * V[n] for n in range(w.shape[0])]
 
 def kraus_decomp_to_proc_tensor(kraus_decomp):
-    raise NotImplementedError()
+    """Calculate the process tensor from a Kraus decomposition.
+
+    """
+    # Don't try and do anything fancy, just compose together things I know work at the moment.
+    return process_to_proc_tensor(partial(act_kraus_ops, kraus_ops=kraus_decomp),
+                                  kraus_decomp[0].shape[0])
 
 def proc_tensor_to_choi_mat(proc_tensor):
     """Get the Choi matrix of the process from the process tensor.
