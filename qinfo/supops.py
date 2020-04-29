@@ -229,6 +229,25 @@ def get_initialize_proc_tensor(rho):
     '''
     return np.reshape(rho, (1, 1, *rho.shape))
 
+def get_conjugate_proc_tensor(op):
+    '''Create a process tensor that conjugates by a given operator.
+
+    The returned process tensor maps A to op*A*op^dag.
+
+    Parameters
+    ----------
+    op : array_like
+        Operator by which to conjugate
+
+    Returns
+    -------
+    array_like
+        The process tensor for the conjugation process
+
+    '''
+    return np.transpose(np.tensordot(op, np.conjugate(op), axes=0),
+                        (1, 3, 0, 2))
+
 def tensor_proc_tensors(proc_tensor_a, proc_tensor_b):
     '''Create the process tensor for the tensor product of two processes
 

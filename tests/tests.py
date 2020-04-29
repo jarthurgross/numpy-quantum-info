@@ -1,5 +1,6 @@
 from nose.tools import assert_almost_equal, assert_equal, assert_true
 from scipy.linalg import sqrtm
+import qinfo as qi
 from qinfo import supops
 
 import numpy as np
@@ -18,6 +19,31 @@ def test_proc_tensor_state():
     check_mat_eq(rand_mat,
                  supops.proc_tensor_to_choi_mat(supops.choi_mat_to_proc_tensor(rand_mat,
                                                                                dim_in=2)))
+def test_conjugate_proc_tensor():
+    U_shift = np.array([[0, 1, 0],
+                        [0, 0, 1],
+                        [1, 0, 0]], dtype=np.complex)
+
+    RS = np.random.RandomState()
+    RS.seed(20041621)
+
+    A_random = RS.standard_normal((2, 3))
+    B_random = RS.standard_normal((3, 3))
+    C_random = RS.standard_normal((3, 3))
+    rho_random = B_random @ qi.dag(B_random)
+    rho_random /= np.trace(rho_random)
+
+    U_shift_proc_tensor = supops.get_conjugate_proc_tensor(U_shift)
+    A_random_proc_tensor = supops.get_conjugate_proc_tensor(A_random)
+
+    check_mat_eq(U_shift @ rho_random @ qi.dag(U_shift),
+                 supops.act_proc_tensor(rho_random, U_shift_proc_tensor))
+    check_mat_eq(U_shift @ C_random @ qi.dag(U_shift),
+                 supops.act_proc_tensor(C_random, U_shift_proc_tensor))
+    check_mat_eq(A_random @ rho_random @ qi.dag(A_random),
+                 supops.act_proc_tensor(rho_random, A_random_proc_tensor))
+    check_mat_eq(A_random @ C_random @ qi.dag(A_random),
+                 supops.act_proc_tensor(C_random, A_random_proc_tensor))
 
 def test_kraus():
     Id = np.eye(2, dtype=np.complex)
