@@ -189,8 +189,26 @@ def get_identity_proc_tensor(dim):
         The process tensor for the identity process
 
     '''
-    return np.transpose(np.tensordot(np.eye(dim), np.eye(dim), axes=0),
+    return np.transpose(np.tensordot(np.eye(dim, dtype=np.complex),
+                                     np.eye(dim, dtype=np.complex), axes=0),
                         (0, 2, 1, 3))
+
+def get_trace_proc_tensor(dim):
+    '''Create the process tensor for the process that takes the trace.
+
+    Parameters
+    ----------
+    dim : positive integer
+        The dimension of the Hilbert space (that is, the dimension of the space
+        on which operators act)
+
+    Returns
+    -------
+    array_like
+        The process tensor for the trace process
+
+    '''
+    return np.reshape(np.eye(dim, dtype=np.complex), (dim, dim, 1, 1))
 
 def get_initialize_proc_tensor(rho):
     '''Create a process tensor that initializes a system in state rho.
