@@ -192,6 +192,25 @@ def get_identity_proc_tensor(dim):
     return np.transpose(np.tensordot(np.eye(dim), np.eye(dim), axes=0),
                         (0, 2, 1, 3))
 
+def get_initialize_proc_tensor(rho):
+    '''Create a process tensor that initializes a system in state rho.
+
+    The returned process tensor maps c to cρ, where c is a scalar (a linear
+    operator on the trivial 1d Hilbert space)
+
+    Parameters
+    ----------
+    rho : array_like
+        Density matrix in which the system is to be initialized
+
+    Returns
+    -------
+    array_like
+        The process tensor for the initialization process
+
+    '''
+    return np.reshape(rho, (1, 1, *rho.shape))
+
 def tensor_proc_tensors(proc_tensor_a, proc_tensor_b):
     '''Create the process tensor for the tensor product of two processes
 
