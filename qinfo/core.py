@@ -324,7 +324,7 @@ class MatrixUnitBasis(OrthonormalOperatorBasis):
         coords = np.array([[n, j, k] for n, (j, k)
                            in enumerate(it.product(range(vec_dim_out),
                                                    range(vec_dim_in)))]).T
-        data = np.ones(vec_dim_in*vec_dim_out, dtype=np.complex)
+        data = np.ones(vec_dim_in*vec_dim_out, dtype=complex)
         operators = COO(coords, data)
         super().__init__(operators)
 
